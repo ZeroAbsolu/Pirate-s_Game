@@ -179,7 +179,12 @@ def list_expected_images():
         "events":   [event_image_path(e["id"]) for e in EVENTS],
         "actions":  [action_image_path(a["id"]) for a in ACTIONS],
         "companions": [companion_image_path(cid) for cid in COMPANIONS],
-        "ui":       [ui_image_path("background"), ui_image_path("logo")],
+        "ui":       [
+            ui_image_path("background"),
+            ui_image_path("logo"),
+            ui_image_path("game_over"),
+            ui_image_path("victory"),
+        ],
     }
 
     for pid, port in PORTS.items():

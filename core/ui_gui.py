@@ -146,6 +146,11 @@ class GraphicalUI(TextUI):
         self.text.tag_config("event",   foreground=PURPLE, font=("Georgia", 12, "bold"), spacing1=10, spacing3=4)
         self.text.tag_config("prompt",  foreground=GOLD,   font=("Georgia", 11, "bold"), spacing1=6)
         self.text.tag_config("divider", foreground=INK_DIM)
+        self.text.tag_config("game_over",
+                             foreground="#ff5050",
+                             font=("Georgia", 18, "bold"),
+                             justify="center",
+                             spacing1=20, spacing3=20)
 
         # Zone d'action (boutons / saisie) — hauteur fixe
         self.action_frame = tk.Frame(left, bg=PANEL, height=170,
@@ -297,6 +302,35 @@ class GraphicalUI(TextUI):
     def event_banner(self, title):
         self._append("")
         self._append(f"◆ ÉVÉNEMENT : {title} ◆", "event")
+
+    def game_over_banner(self, text):
+        """Banner dramatique en rouge centré."""
+        self._append("")
+        self._append("━" * 60, "fail")
+        self._append(f"⚓  {text}  ⚓", "game_over")
+        self._append("━" * 60, "fail")
+        self._append("")
+
+    def reset(self):
+        """Remise à zéro complète pour relancer une partie."""
+        if self._closed:
+            return
+        # Effacer le journal
+        self.text.config(state="normal")
+        self.text.delete("1.0", "end")
+        self.text.config(state="disabled")
+        # Réinitialiser le panneau d'état
+        for k in self._sv:
+            self._sv[k].set("—")
+        self._sv_companions.set("(aucun)")
+        # Réinitialiser la scène
+        self._draw_placeholder("Nouvelle partie")
+        # Effacer la zone d'action et le prompt
+        self._clear_action_widgets()
+        self._set_prompt("")
+        # Libérer les références d'images
+        self._img_refs.clear()
+        self._safe_update()
 
     # ===============================================================
     # Images / scènes

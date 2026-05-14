@@ -260,5 +260,8 @@ repli automatique sur `main.png` du port, puis sur une plaque grise.
 
 ## UI (facultatif)
 
-- `assets/images/ui/background.png`
-- `assets/images/ui/logo.png`
+- `assets/images/ui/background.png` — fond par défaut
+- `assets/images/ui/logo.png` — logo d'intro
+- `assets/images/ui/game_over.png` — fond de l'écran de défaite
+- `assets/images/ui/victory.png` — fond de l'écran de retraite honorable
+

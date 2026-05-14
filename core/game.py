@@ -59,6 +59,12 @@ class GameState:
         # Fin de partie
         self.game_over = False
         self.victory = False
+        self.defeat_reason = None      # libellé court : "Naufrage", "Mutinerie"…
+        self.defeat_narrative = None   # texte d'ambiance
+        # Cause précise — sert à l'écran de fin (cf. core/engine.py)
+        # Valeurs possibles : crew_loss, shipwreck, mutiny, abandon,
+        #                     pardon (victoire).
+        self.defeat_cause = None
 
     # ----- Temps -----
     def current_date(self) -> datetime.date:
@@ -127,22 +133,37 @@ class GameState:
         self.affection[port_id] = self.affection_for(port_id) + amount
 
     # ----- Défaite -----
+    def _trigger_defeat(self, ui, reason: str, narrative: str):
+        """Enregistre la cause et termine la partie."""
+        self.defeat_reason = reason
+        self.defeat_narrative = narrative
+        self.game_over = True
+        self.victory = False
+        ui.fail(narrative)
+
     def check_defeat(self, ui):
-        if self.crew <= 5 and not self.game_over:
-            ui.fail(
+        if self.game_over:
+            return
+        if self.crew <= 5:
+            self._trigger_defeat(
+                ui,
+                "Équipage décimé",
                 "Plus assez d'hommes pour manœuvrer. Le navire dérive jusqu'à "
-                "ce qu'un patrouilleur le récupère. Votre carrière s'achève au bout d'une corde."
+                "ce qu'un patrouilleur le récupère. Votre carrière s'achève "
+                "au bout d'une corde.",
             )
-            self.game_over = True
             return
-        if self.ship["hull_current"] <= 0 and not self.game_over:
-            ui.fail(
+        if self.ship["hull_current"] <= 0:
+            self._trigger_defeat(
+                ui,
+                "Naufrage",
                 "La coque cède sous les coups de mer. Le navire sombre. "
-                "Quelques planches flottent — votre légende avec elles."
+                "Quelques planches flottent — votre légende avec elles.",
             )
-            self.game_over = True
             return
-        if self.supplies <= 0 and self.crew > 0 and not self.game_over:
+        if self.supplies <= 0 and self.crew > 0:
+            # Pas mort instantanément, mais grosse perte d'équipage et de moral.
+            # La défaite finale viendra par crew_lost ou morale=0 au tour suivant.
             self.crew = max(0, self.crew - max(2, self.crew // 6))
             self.morale = max(0, self.morale - 20)
             ui.fail(
@@ -150,12 +171,13 @@ class GameState:
                 "l'équipage et brise le moral."
             )
             self.supplies = 1
-        if self.morale <= 0 and not self.game_over:
-            ui.fail(
+        if self.morale <= 0:
+            self._trigger_defeat(
+                ui,
+                "Mutinerie générale",
                 "Le moral est tombé à zéro. L'équipage se mutine en masse, "
-                "abandonne le capitaine sur une île et part avec le navire."
+                "abandonne le capitaine sur une île et part avec le navire.",
             )
-            self.game_over = True
 
     # ----- Affichage : on délègue à l'UI -----
     def render_status(self, ui):

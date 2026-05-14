@@ -104,6 +104,18 @@ royal (Act of Grace 1717-1718), épave, fièvre tropicale, vent favorable,
 de baleine**, **embuscade côtière**, plus les rencontres de recrutement
 de compagnons (4).
 
+### Écrans de fin et reprise
+
+Trois fins possibles, chacune avec un écran dédié et un bilan de carrière :
+
+- **Victoire** (`victory_screen`) — pardon royal accepté ou retraite honorable.
+- **Game Over** (`game_over_screen`) — défaite avec **cause explicite** (Naufrage, Mutinerie générale, Équipage décimé) et narration.
+- **Abandon** (`abandon_screen`) — sortie volontaire du joueur.
+
+À l'issue de chaque partie, l'option **« Commencer une nouvelle partie »** est
+proposée. L'interface se réinitialise (journal effacé, panneau de bord remis
+à zéro, scène par défaut) sans avoir à relancer le programme.
+
 ### 21 événements de port
 
 Audience chez d'Ogeron à Tortuga (1665-75), réception chez Modyford à

@@ -169,6 +169,22 @@ class TextUI:
         _safe_print()
         _safe_print(f"{C_BOLD}{C_MAGENTA}  {SYM_DIAMOND} ÉVÉNEMENT : {title} {SYM_DIAMOND}{C_RESET}")
 
+    def game_over_banner(self, text):
+        """Affichage dramatique de fin de partie."""
+        bar = "=" * 56
+        _safe_print()
+        _safe_print(f"{C_BOLD}{C_RED}{bar}{C_RESET}")
+        _safe_print(f"{C_BOLD}{C_RED}{text.center(56)}{C_RESET}")
+        _safe_print(f"{C_BOLD}{C_RED}{bar}{C_RESET}")
+        _safe_print()
+
+    def reset(self):
+        """Remise à zéro avant une nouvelle partie. En texte : rien à faire
+        (la nouvelle partie s'enchaîne dans la même console)."""
+        _safe_print()
+        _safe_print(f"{C_BOLD}{C_YELLOW}~~~ NOUVELLE PARTIE ~~~{C_RESET}")
+        _safe_print()
+
     # ----- Images (en texte, on signale juste leur présence) -----
     def show_image(self, path):
         if path and os.path.isfile(path):
