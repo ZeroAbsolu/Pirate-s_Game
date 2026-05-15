@@ -1,6 +1,6 @@
 # MANIFEST — Images d'illustration
 
-Total : **140** fichiers attendus.
+Total : **142** fichiers attendus (138 obligatoires + 4 UI facultatifs).
 
 Régénérer la liste vivante : `python main.py --check-images`
 
@@ -23,6 +23,8 @@ repli automatique sur `main.png` du port, puis sur une plaque grise.
 
 ## Capitaines (8)
 
+Affichés sur la fiche du capitaine au moment du choix initial.
+
 - `assets/images/captains/henry_morgan.png` — **Henry Morgan** « L'Amiral des Boucaniers »
 - `assets/images/captains/barbe_noire.png` — **Edward Teach** « Barbe-Noire »
 - `assets/images/captains/bartholomew_roberts.png` — **Bartholomew Roberts** « Black Bart »
@@ -34,10 +36,20 @@ repli automatique sur `main.png` du port, puis sur une plaque grise.
 
 ## Compagnons (15)
 
-- `assets/images/companions/marie_tessart.png` — **Marie Tessart** « L'Acadienne » (Hôtesse de la Cayonne)
-- `assets/images/companions/bess_watson.png` — **Bess Watson** « Bess la Rousse » (Hôtesse du Cat and Fiddle)
+Affichés dans **quatre contextes** :
+1. Pendant l'événement de recrutement (officiers : rencontre en mer ou au port).
+2. Pendant la **rencontre aléatoire à la taverne** pour les hôtesses
+   (déclenchée après *Boire avec l'équipage* — cf. `data/actions.py`,
+   `_tavern_hostess_encounter`). Le portrait reste visible pendant toute
+   la rencontre, à chaque cadeau offert.
+3. Au moment du recrutement effectif.
+4. Via l'action **Inspecter** — le joueur peut consulter le portrait et la
+   fiche détaillée de n'importe quel compagnon recruté.
+
+- `assets/images/companions/marie_tessart.png` — **Marie Tessart** « L'Acadienne » (Hôtesse de la Cayonne, Tortuga)
+- `assets/images/companions/bess_watson.png` — **Bess Watson** « Bess la Rousse » (Hôtesse du Cat and Fiddle, Port Royal)
 - `assets/images/companions/hannah_mott.png` — **Hannah Mott** « La Veuve » (Hôtesse de Nassau)
-- `assets/images/companions/mahalia.png` — **Mahalia** « La Sakalava » (Hôtesse du comptoir de Baldridge)
+- `assets/images/companions/mahalia.png` — **Mahalia** « La Sakalava » (Hôtesse du comptoir de Baldridge, Sainte-Marie)
 - `assets/images/companions/beatriz_castano.png` — **Beatriz Castaño** « La Andaluza » (Hôtesse exilée à La Havane)
 - `assets/images/companions/sarah_pemberton.png` — **Sarah Pemberton** (Hôtesse à Charles Town)
 - `assets/images/companions/marguerite_lavigne.png` — **Marguerite Lavigne** « Margot la Manchotte » (Hôtesse de Petit-Goâve)
@@ -52,6 +64,9 @@ repli automatique sur `main.png` du port, puis sur une plaque grise.
 
 ## Navires (9)
 
+Affichés sur la fiche de navire au moment du choix, à l'achat au chantier,
+et lors du changement de bord.
+
 - `assets/images/ships/barque_longue.png` — **Barque longue** *(1500-1700)*
 - `assets/images/ships/sloop.png` — **Sloop** *(1650-1800)*
 - `assets/images/ships/goelette.png` — **Goélette** *(1700-1800)*
@@ -64,7 +79,10 @@ repli automatique sur `main.png` du port, puis sur une plaque grise.
 
 ## Ports — scènes générales (40)
 
-### L'île de la Tortue (`tortuga`)
+Fond de scène pour chaque service du port. Repli automatique sur `main.png`
+si une sous-scène manque.
+
+### L'île de la Tortue (`tortuga`) — 6
 
 - `assets/images/ports/tortuga/main.png` — vue d'ensemble du mouillage
 - `assets/images/ports/tortuga/recruit.png` — quai d'embauche
@@ -73,7 +91,7 @@ repli automatique sur `main.png` du port, puis sur une plaque grise.
 - `assets/images/ports/tortuga/fence.png` — comptoir du receleur
 - `assets/images/ports/tortuga/tavern.png` — intérieur de taverne
 
-### Port Royal (`port_royal`)
+### Port Royal (`port_royal`) — 7
 
 - `assets/images/ports/port_royal/main.png` — vue d'ensemble du mouillage
 - `assets/images/ports/port_royal/recruit.png` — quai d'embauche
@@ -83,7 +101,7 @@ repli automatique sur `main.png` du port, puis sur une plaque grise.
 - `assets/images/ports/port_royal/tavern.png` — intérieur de taverne
 - `assets/images/ports/port_royal/shipyard.png` — chantier naval
 
-### Nassau (`nassau`)
+### Nassau (`nassau`) — 6
 
 - `assets/images/ports/nassau/main.png` — vue d'ensemble du mouillage
 - `assets/images/ports/nassau/recruit.png` — quai d'embauche
@@ -92,7 +110,7 @@ repli automatique sur `main.png` du port, puis sur une plaque grise.
 - `assets/images/ports/nassau/fence.png` — comptoir du receleur
 - `assets/images/ports/nassau/tavern.png` — intérieur de taverne
 
-### Île Sainte-Marie (`ile_sainte_marie`)
+### Île Sainte-Marie (`ile_sainte_marie`) — 6
 
 - `assets/images/ports/ile_sainte_marie/main.png` — vue d'ensemble du mouillage
 - `assets/images/ports/ile_sainte_marie/recruit.png` — quai d'embauche
@@ -101,13 +119,13 @@ repli automatique sur `main.png` du port, puis sur une plaque grise.
 - `assets/images/ports/ile_sainte_marie/fence.png` — comptoir du receleur
 - `assets/images/ports/ile_sainte_marie/tavern.png` — intérieur de taverne
 
-### La Havane (`la_havane`)
+### La Havane (`la_havane`) — 3
 
 - `assets/images/ports/la_havane/main.png` — vue d'ensemble du mouillage
 - `assets/images/ports/la_havane/supplies.png` — magasin de vivres
 - `assets/images/ports/la_havane/fence.png` — comptoir du receleur
 
-### Charles Town (`charleston`)
+### Charles Town (`charleston`) — 6
 
 - `assets/images/ports/charleston/main.png` — vue d'ensemble du mouillage
 - `assets/images/ports/charleston/recruit.png` — quai d'embauche
@@ -116,7 +134,7 @@ repli automatique sur `main.png` du port, puis sur une plaque grise.
 - `assets/images/ports/charleston/tavern.png` — intérieur de taverne
 - `assets/images/ports/charleston/shipyard.png` — chantier naval
 
-### Petit-Goâve (`saint_domingue`)
+### Petit-Goâve (`saint_domingue`) — 6
 
 - `assets/images/ports/saint_domingue/main.png` — vue d'ensemble du mouillage
 - `assets/images/ports/saint_domingue/recruit.png` — quai d'embauche
@@ -126,6 +144,8 @@ repli automatique sur `main.png` du port, puis sur une plaque grise.
 - `assets/images/ports/saint_domingue/tavern.png` — intérieur de taverne
 
 ## Bâtiments spécifiques (15)
+
+Affichés à l'entrée du bâtiment dans le menu du port.
 
 ### L'île de la Tortue (`tortuga`)
 
@@ -179,6 +199,8 @@ repli automatique sur `main.png` du port, puis sur une plaque grise.
    _Audience pour commissions de course (1691-1700)._
 
 ## Événements de port (21)
+
+Affichés au moment de l'événement, en surimpression du port.
 
 ### L'île de la Tortue (`tortuga`)
 
@@ -251,17 +273,37 @@ repli automatique sur `main.png` du port, puis sur une plaque grise.
 
 ## Actions (6)
 
+Affichées au moment où l'action est choisie depuis le menu principal.
+
 - `assets/images/actions/sail.png` — Naviguer (1 tour, événement aléatoire)
 - `assets/images/actions/patrol.png` — Patrouiller une route commerciale
 - `assets/images/actions/port.png` — Visiter un port
 - `assets/images/actions/rest.png` — Hivernage / repos en crique
 - `assets/images/actions/distribute.png` — Distribuer le butin (selon les Articles)
-- `assets/images/actions/inspect.png` — Inspecter l'état du navire et de l'équipage
+- `assets/images/actions/inspect.png` — Inspecter l'état du navire et de l'équipage  
+   _Depuis cette action, le joueur peut consulter le portrait individuel de chaque compagnon recruté._
 
-## UI (facultatif)
+## UI (facultatif, 4)
 
 - `assets/images/ui/background.png` — fond par défaut
 - `assets/images/ui/logo.png` — logo d'intro
 - `assets/images/ui/game_over.png` — fond de l'écran de défaite
 - `assets/images/ui/victory.png` — fond de l'écran de retraite honorable
 
+---
+
+## Récapitulatif
+
+| Catégorie | Nombre |
+|---|---:|
+| Capitaines | 8 |
+| Compagnons | 15 |
+| Navires | 9 |
+| Ports — scènes | 40 |
+| Bâtiments spécifiques | 15 |
+| Événements de port | 21 |
+| Événements en mer | 24 |
+| Actions | 6 |
+| **Sous-total obligatoire** | **138** |
+| UI (facultatif) | 4 |
+| **Total** | **142** |

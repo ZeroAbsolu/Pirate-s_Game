@@ -5,8 +5,20 @@ Deux mécaniques de recrutement :
 
   1. **Hôtesses de taverne** (une par port) : se recrutent à force de
      cadeaux. Compteur d'affection par port dans state.affection[port_id].
-     Au seuil atteint, la femme peut être embarquée lors d'une visite à
-     la taverne.
+     Chaque visite à la taverne, après « Boire avec l'équipage », a une
+     chance que l'hôtesse vienne s'asseoir à la table du capitaine :
+     c'est la *rencontre*, déclenchée par data/actions.py
+     (`_tavern_hostess_encounter`). À chaque rencontre, le joueur peut
+     offrir UN cadeau unique. Au seuil d'affection, la rencontre
+     suivante propose le recrutement et clôt la chaîne.
+
+     Chaque hôtesse possède donc :
+        - gift_cost / gift_flavor : le cadeau-type (un seul par stade)
+        - gifts_needed             : seuil d'affection pour le recrutement
+        - intro                    : ligne d'introduction (legacy)
+        - encounter_dialogues      : liste de gifts_needed+1 répliques
+                                     (une par stade, dernière = « prête à partir »)
+        - accept                   : ligne au moment du recrutement
 
   2. **Officiers / spécialistes** : se recrutent via des événements
      (de port ou en mer) avec conditions historiques. Cf. port_events.py.
@@ -71,6 +83,32 @@ COMPANIONS = {
                 "Marie remplit votre godet sans vous regarder. « Encore "
                 "un capitaine qui croit qu'on l'attend. »"
             ),
+            # 4 répliques : aff 0, 1, 2, puis « prête à partir » au seuil.
+            "encounter_dialogues": [
+                (
+                    "Marie pose un pichet d'étain devant vous sans vous "
+                    "regarder. « On a parlé de toi à la résidence, "
+                    "capitaine. Un dénommé d'Ogeron pose des questions. "
+                    "C'est ton ami ? »"
+                ),
+                (
+                    "Marie s'attable un instant en face de vous, le coupon "
+                    "précédent toujours plié dans sa poche. « Mon père "
+                    "était sablais. Mon mari, micmac. Et toi, capitaine, "
+                    "d'où tu viens, exactement ? »"
+                ),
+                (
+                    "Marie fait glisser un verre de tafia dans votre main. "
+                    "« Trois fois que je te vois. Tu reviendras à la "
+                    "prochaine escale, ou tu pars pour de bon ? J'ai "
+                    "besoin de savoir, capitaine. »"
+                ),
+                (
+                    "Marie pose son tablier sur la barrique sans un mot, "
+                    "puis se penche : « Capitaine, mon balluchon est plié "
+                    "depuis trois jours. Tu n'as qu'à dire un mot. »"
+                ),
+            ],
             "accept": (
                 "Marie pose son tablier. « Trois mois que j'attendais "
                 "qu'un imbécile me propose enfin. » Elle prend son "
@@ -106,6 +144,34 @@ COMPANIONS = {
                 "Bess vous toise. « Sir Henry Morgan venait ici aussi. "
                 "Vous n'êtes pas Morgan. »"
             ),
+            "encounter_dialogues": [
+                (
+                    "Bess remplit votre godet jusqu'au bord, sans cesser de "
+                    "vous fixer. « Sir Henry Morgan s'asseyait à cette "
+                    "table. Vous n'êtes pas Morgan. Ça reste à voir si "
+                    "c'est un défaut. »"
+                ),
+                (
+                    "Bess s'accoude à la barrique, voix plus basse. "
+                    "« Mon père a été transporté après Bothwell Bridge. "
+                    "Mort à Spanish Town, sous le fouet d'un planteur "
+                    "anglais. Et toi, capitaine — un jour, qui dira "
+                    "d'où tu viens ? »"
+                ),
+                (
+                    "Bess pose la nouvelle livre de tabac à côté de la "
+                    "précédente, alignées sur l'étain. « Trois livres "
+                    "en trois mois. Ou tu m'achètes ma compagnie, ou "
+                    "tu m'achètes ma confiance. Choisis. »"
+                ),
+                (
+                    "Bess décroche sa chevillière de l'enseigne du Cat "
+                    "and Fiddle. « Cette ville sombrera un jour, "
+                    "capitaine — un séisme, un pirate, un incendie, peu "
+                    "importe. Je préfère sombrer avec un capitaine "
+                    "vivant. »"
+                ),
+            ],
             "accept": (
                 "Bess plie son tablier. « Cette ville sombre, autant que "
                 "ce soit en mer. »"
@@ -140,6 +206,34 @@ COMPANIONS = {
                 "Hannah essuie un gobelet d'étain. « J'en ai vu défiler, "
                 "des capitaines. Trois mois et plus de nouvelles. »"
             ),
+            "encounter_dialogues": [
+                (
+                    "Hannah essuie un gobelet d'étain avec lenteur, "
+                    "ses doigts encore noircis d'encre des Articles "
+                    "qu'elle copie le matin. « Mon mari est mort en mer "
+                    "en 1712. À La Havane, au bout d'une corde. Vous, "
+                    "capitaine, comment voulez-vous finir ? »"
+                ),
+                (
+                    "Hannah relit silencieusement le livre de prières "
+                    "que vous lui avez offert. « Les Articles disent "
+                    "que chaque homme a sa part, et que le quartier-"
+                    "maître veille au partage. Le savez-vous par cœur, "
+                    "capitaine, ou faites-vous semblant ? »"
+                ),
+                (
+                    "Hannah pose une copie des Articles entre vous deux, "
+                    "encre fraîche. « Une troisième fois. Si je devais "
+                    "signer quelque chose un jour, ce serait avec celui "
+                    "qui me regarde en face quand il jure. »"
+                ),
+                (
+                    "Hannah enroule les Articles dans un mouchoir et les "
+                    "glisse dans son tablier. « Si vous me demandez de "
+                    "monter à bord, capitaine, je dirai oui. Je n'ai "
+                    "plus rien à enterrer dans cette ville. »"
+                ),
+            ],
             "accept": (
                 "Hannah enroule les Articles dans un mouchoir. « Si je "
                 "dois mourir en mer, autant que ce soit avec un nouveau. »"
@@ -174,6 +268,33 @@ COMPANIONS = {
                 "Mahalia broie une racine dans un mortier. « Vous puez "
                 "la mer, capitaine. Et le rhum. »"
             ),
+            "encounter_dialogues": [
+                (
+                    "Mahalia broie une racine dans son mortier sans lever "
+                    "les yeux. « Vous puez encore la mer, capitaine. Et "
+                    "vos hommes toussent — je les entends d'ici. Le "
+                    "scorbut, ça se sent à la sueur. »"
+                ),
+                (
+                    "Mahalia trie ses sachets d'écorces de quinquina. "
+                    "« Le précédent collier, je l'ai gardé. Pas par "
+                    "sentiment — par curiosité. Tu paies bien, "
+                    "capitaine, mais pourquoi moi, et pas une autre ? »"
+                ),
+                (
+                    "Mahalia vous regarde longuement, perles à la main. "
+                    "« Trois fois. Tes hommes tomberont moins si je "
+                    "viens à bord, c'est vrai. Mais toi, capitaine — "
+                    "qu'est-ce que tu as à offrir en dehors de tes "
+                    "pièces ? »"
+                ),
+                (
+                    "Mahalia met de côté ses sachets d'écorces dans un "
+                    "petit coffre de bois rouge. « Mes herbes voyageront "
+                    "mieux à ton bord qu'à terre. Et le roi sakalava "
+                    "n'a plus besoin de moi. »"
+                ),
+            ],
             "accept": (
                 "Mahalia rassemble ses sachets d'écorces. « Tes hommes "
                 "tomberont moins si je viens. »"
@@ -208,6 +329,27 @@ COMPANIONS = {
                 "Beatriz vous fixe entre deux notes de guitare. « Tu n'es "
                 "pas espagnol. Bien. »"
             ),
+            # 3 répliques (gifts_needed=2 +1) : aff 0, 1, puis seuil.
+            "encounter_dialogues": [
+                (
+                    "Beatriz pose sa guitare et vous toise entre deux "
+                    "accords. « Tu n'es pas espagnol. Bien. J'ai eu mon "
+                    "compte d'officiers du Roi Catholique — et eux du "
+                    "mien, depuis Séville. »"
+                ),
+                (
+                    "Beatriz cache la première émeraude dans sa basquine, "
+                    "sous la jupe. « Je connais les routes des galions, "
+                    "capitaine. Et leurs vices. Tu veux savoir lesquels, "
+                    "ou tu veux juste m'acheter avec une autre pierre ? »"
+                ),
+                (
+                    "Beatriz attache un couteau court sous sa basquine, "
+                    "geste rapide, qu'elle ne cherche pas à cacher. "
+                    "« Tu me sors d'ici, je te sors des galions. Vamos, "
+                    "capitán. »"
+                ),
+            ],
             "accept": (
                 "Beatriz cache un couteau dans sa basquine. « Vamos. "
                 "Je connais leurs routes mieux qu'eux. »"
@@ -242,6 +384,34 @@ COMPANIONS = {
                 "Sarah tient sa plume comme une dague. « Vous savez "
                 "écrire, capitaine ? Pas tous. »"
             ),
+            "encounter_dialogues": [
+                (
+                    "Sarah note quelque chose dans son livre de comptes "
+                    "puis lève la plume vers vous. « Vous savez écrire, "
+                    "capitaine ? Pas tous. Et ceux qui me proposent "
+                    "quelque chose, encore moins. »"
+                ),
+                (
+                    "Sarah relit ses propres notes à voix basse, comme "
+                    "pour elle-même. « Le papier que vous m'avez donné, "
+                    "je l'ai gardé pour mes livres de bord. Vous "
+                    "parliez sérieusement, capitaine, ou c'était un "
+                    "geste d'oisif ? »"
+                ),
+                (
+                    "Sarah ferme son grand livre d'un geste net. « Trois "
+                    "ramettes. Trois venues. Mon père, qui était de "
+                    "l'Assemblée des Amis, disait : compter, c'est "
+                    "s'engager. À vous de me dire ce que vous comptez "
+                    "de moi. »"
+                ),
+                (
+                    "Sarah replie son livre de comptes et le glisse "
+                    "dans une besace de toile. « J'ai fini d'écrire "
+                    "pour Charles Town. Le prochain registre, capitaine, "
+                    "ce sera le vôtre. »"
+                ),
+            ],
             "accept": (
                 "Sarah ferme son livre de comptes. « Si je dois sortir "
                 "de cette ville, autant que ce soit en mer. »"
@@ -276,6 +446,36 @@ COMPANIONS = {
                 "Margot saisit son verre du bras qui lui reste. "
                 "« On dit que tu paies bien, capitaine. On dit. »"
             ),
+            "encounter_dialogues": [
+                (
+                    "Margot soulève son verre du bras valide, l'autre "
+                    "manche pendante et nouée. « Mon mari est mort "
+                    "dans la tempête de 81, à Léogâne. Depuis, je "
+                    "recouds. Et toi, capitaine — tu paies les "
+                    "chirurgiens, ou tu les laisses crever sur la "
+                    "plage avec les blessés ? »"
+                ),
+                (
+                    "Margot range la première trousse d'instruments "
+                    "dans un coffre, sous le comptoir. « Tu paies en "
+                    "argent, pas en promesse. C'est rare. Tu cherches "
+                    "quelqu'un pour recoudre, capitaine, ou pour autre "
+                    "chose que je préfère ne pas nommer ? »"
+                ),
+                (
+                    "Margot ferme la besace d'instruments à la sangle "
+                    "de cuir, d'une main experte. « Trois fois. J'ai "
+                    "fini de te jauger, capitaine. Si je sors d'ici, "
+                    "ce sera pour la mer ou pour la tombe, et je "
+                    "préfère la mer. »"
+                ),
+                (
+                    "Margot endosse la besace d'instruments en bandoulière, "
+                    "sa main valide ajustant la sangle. « Tu as un "
+                    "charpentier ? Tu auras une recouseuse aussi. Et "
+                    "Petit-Goâve peut crever sans moi. »"
+                ),
+            ],
             "accept": (
                 "Margot accroche une besace d'instruments. « Quelqu'un "
                 "doit recoudre vos hommes. Ce sera moi. »"

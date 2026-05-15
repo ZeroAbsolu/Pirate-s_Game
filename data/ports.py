@@ -100,7 +100,7 @@ PORTS = {
             "Castillo del Morro. Les pirates n'y entrent pas — sauf pour "
             "le brûler comme le fit Jacques de Sores en 1555."
         ),
-        "services": ["supplies", "fence"],
+        "services": ["supplies", "fence", "tavern"],
         "hostility": 9,
         "fence_rate": 0.4,
         "supply_price": 7,

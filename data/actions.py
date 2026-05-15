@@ -4,8 +4,15 @@ Actions disponibles au joueur à chaque tour.
 Modifications par rapport à la version précédente :
   - Les sous-actions de port appliquent les bonus passifs des compagnons
     (recruit_discount, repair_discount, fence_bonus, supply_savings).
-  - La taverne propose une interaction d'affection avec l'hôtesse locale
-    (cadeaux successifs → recrutement).
+  - **Nouvelle mécanique de taverne** : le menu de taverne ne propose plus
+    que « Boire avec l'équipage » et « Quitter ». L'offre de cadeau à
+    l'hôtesse passe désormais par une RENCONTRE ALÉATOIRE déclenchée
+    après avoir bu (voir `_tavern_hostess_encounter`). Le portrait de
+    l'hôtesse est affiché pendant toute la rencontre. La chaîne se
+    poursuit visite après visite jusqu'au seuil d'affection, où la
+    rencontre suivante propose le recrutement et clôt la chaîne.
+  - L'action « Inspecter » permet en plus de consulter le portrait et
+    la fiche détaillée de chaque compagnon recruté.
 """
 
 import random
@@ -13,6 +20,19 @@ from data.events import pick_event
 from data.ports import get_port, list_ports
 from data.port_events import maybe_trigger_port_event
 from data.companions import get_tavern_keeper
+
+
+# -------------------------------------------------------------------
+# Constantes — rencontre avec l'hôtesse
+# -------------------------------------------------------------------
+
+# Probabilité de base que l'hôtesse rejoigne le joueur à sa table
+# après que celui-ci a bu avec l'équipage.
+HOSTESS_ENCOUNTER_CHANCE_BASE  = 0.50
+# Bonus par cadeau déjà offert (l'hôtesse s'enhardit).
+HOSTESS_ENCOUNTER_CHANCE_BONUS = 0.10
+# Plafond avant seuil ; au seuil atteint, la rencontre est garantie.
+HOSTESS_ENCOUNTER_CHANCE_CAP   = 0.80
 
 
 # -------------------------------------------------------------------
@@ -250,60 +270,53 @@ def _port_fence(state, ui, port):
 
 
 # -------------------------------------------------------------------
-# Taverne : interaction avec l'hôtesse
+# Taverne — boire avec l'équipage déclenche éventuellement la
+# rencontre avec l'hôtesse
 # -------------------------------------------------------------------
 
 def _port_tavern(state, ui, port):
+    """Menu de taverne. Très simple : boire ou partir. Tout ce qui
+    concerne l'hôtesse passe par la rencontre aléatoire déclenchée
+    après avoir bu."""
     pid = port["id"]
     waitress = get_tavern_keeper(pid)
 
-    while True:
-        ui.show_scene("ports", pid, "tavern")
+    ui.show_scene("ports", pid, "tavern")
 
-        # Construction du menu de taverne
-        options = [("Boire avec l'équipage", "drink")]
+    # Petit aperçu de l'état d'affection (sans dévoiler l'hôtesse elle-même).
+    if waitress and not state.has_companion(waitress["id"]):
+        affection = state.affection_for(pid)
+        threshold = waitress["recruitment"]["gifts_needed"]
+        nick = f" « {waitress['nickname']} »" if waitress.get("nickname") else ""
+        if affection == 0:
+            ui.info(
+                f"L'hôtesse — {waitress['name']}{nick} — sert au comptoir. "
+                "Elle ne s'attable pas avec n'importe qui."
+            )
+        elif affection < threshold:
+            ui.info(
+                f"{waitress['name']}{nick} vous reconnaît du coin de l'œil. "
+                f"(Affection {affection}/{threshold})"
+            )
+        else:
+            ui.info(
+                f"{waitress['name']}{nick} guette discrètement votre arrivée. "
+                f"(Affection {affection}/{threshold})"
+            )
 
-        if waitress and not state.has_companion(waitress["id"]):
-            affection = state.affection_for(pid)
-            threshold = waitress["recruitment"]["gifts_needed"]
-            cost = waitress["recruitment"]["gift_cost"]
-            present_text = waitress["recruitment"]["gift_flavor"]
-
-            if affection == 0:
-                ui.narrate(waitress["recruitment"]["intro"])
-                ui.info(f"L'hôtesse — {waitress['name']}"
-                        + (f" « {waitress['nickname']} »" if waitress.get("nickname") else "")
-                        + f" — vous toise.")
-
-            if affection >= threshold:
-                options.append(
-                    (f"Proposer à {waitress['name']} de vous suivre", "recruit"))
-            else:
-                options.append(
-                    (f"Offrir {present_text} ({cost} P8) "
-                     f"[affection {affection}/{threshold}]", "gift"))
-
-        options.append(("Quitter la taverne", "leave"))
-
-        choice = ui.choose("À la taverne :", options)
-        if choice == "leave":
-            return
-
-        if choice == "drink":
-            _tavern_drink(state, ui, port)
-            return   # boire occupe le reste de l'escale
-
-        if choice == "gift":
-            _tavern_gift(state, ui, port, waitress)
-            # Pas de return : on peut continuer (mais c'est lourd en P8)
-            continue
-
-        if choice == "recruit":
-            _tavern_propose(state, ui, port, waitress)
-            return
+    options = [
+        ("Boire avec l'équipage", "drink"),
+        ("Quitter la taverne", "leave"),
+    ]
+    choice = ui.choose("À la taverne :", options)
+    if choice == "drink":
+        _tavern_drink(state, ui, port)
 
 
 def _tavern_drink(state, ui, port):
+    """Le joueur boit avec l'équipage. Coût d'un tour, moral en hausse,
+    quelques désertions possibles ; PUIS, chance que l'hôtesse vienne
+    s'asseoir à sa table (rencontre aléatoire, voir plus bas)."""
     state.advance_turn()
     state.morale = min(100, state.morale + 5)
     ui.narrate(
@@ -320,32 +333,115 @@ def _tavern_drink(state, ui, port):
     elif base_desertion > 0 and reduction > 0:
         ui.info("Le quartier-maître a su retenir les hommes — aucune désertion.")
 
+    # === Rencontre éventuelle avec l'hôtesse de la taverne ===
+    waitress = get_tavern_keeper(port["id"])
+    if waitress and not state.has_companion(waitress["id"]):
+        affection = state.affection_for(port["id"])
+        threshold = waitress["recruitment"]["gifts_needed"]
+        if affection >= threshold:
+            # Au seuil : la rencontre est garantie. La chaîne va se clore.
+            chance = 1.0
+        else:
+            chance = min(
+                HOSTESS_ENCOUNTER_CHANCE_CAP,
+                HOSTESS_ENCOUNTER_CHANCE_BASE
+                + HOSTESS_ENCOUNTER_CHANCE_BONUS * affection,
+            )
+        if random.random() < chance:
+            _tavern_hostess_encounter(state, ui, port, waitress)
+            return
+
+    # Sinon, possibilité d'une rumeur classique.
     event = pick_event(state)
     if event and event["id"] == "tavern_rumor":
         event["resolve"](state, ui)
 
 
-def _tavern_gift(state, ui, port, waitress):
-    cost = waitress["recruitment"]["gift_cost"]
-    if state.gold < cost:
-        ui.fail(f"Vous n'avez pas {cost} pièces pour un tel présent.")
-        return
-    state.gold -= cost
-    state.increase_affection(port["id"])
-    affection = state.affection_for(port["id"])
+def _tavern_hostess_encounter(state, ui, port, waitress):
+    """Rencontre aléatoire avec l'hôtesse, déclenchée après avoir bu.
+
+    - Affiche son portrait pour toute la durée de la rencontre.
+    - Avant le seuil : permet d'offrir un seul cadeau, qui fait monter
+      l'affection d'un point. Reculer (« Prendre congé ») coûte juste
+      la chance manquée — pas de tour ni de pièce dépensés en plus.
+    - Au seuil atteint (affection >= gifts_needed) : permet de proposer
+      à l'hôtesse de quitter le port. Si elle accepte, elle rejoint
+      l'équipage et la chaîne d'événements s'arrête définitivement
+      pour ce port.
+
+    Cohérence historique : les cadeaux suivent la personnalité et le
+    rang de chaque hôtesse (toile d'Hollande, tabac de Virginie,
+    émeraudes de Muzo, papier de Hollande, etc.). Cf. data/companions.py.
+    """
+    pid = port["id"]
+    affection = state.affection_for(pid)
     threshold = waitress["recruitment"]["gifts_needed"]
-    ui.success(
-        f"Vous offrez {waitress['recruitment']['gift_flavor']} à "
-        f"{waitress['name']}. Elle l'accepte sans un mot. "
-        f"(Affection {affection}/{threshold})"
-    )
+
+    # Portrait affiché pendant toute la rencontre.
+    ui.show_scene("companions", waitress["id"])
+    nick = f" « {waitress['nickname']} »" if waitress.get("nickname") else ""
+    ui.event_banner(f"Une rencontre avec {waitress['name']}{nick}")
+
+    # Dialogue propre au stade d'affection.
+    dialogues = waitress["recruitment"].get("encounter_dialogues", [])
+    if dialogues:
+        idx = min(affection, len(dialogues) - 1)
+        ui.narrate(dialogues[idx])
+    else:
+        # Fallback si une hôtesse n'a pas (encore) de dialogues définis.
+        ui.narrate(waitress["recruitment"].get(
+            "intro",
+            f"{waitress['name']} s'assoit en face de vous, sans un mot.",
+        ))
+
+    cost = waitress["recruitment"]["gift_cost"]
+    gift_flavor = waitress["recruitment"]["gift_flavor"]
+
+    options = []
     if affection >= threshold:
+        options.append(
+            (f"Lui proposer de quitter le port avec vous", "recruit"))
+    elif state.gold >= cost:
+        options.append(
+            (f"Lui offrir {gift_flavor} ({cost} P8)", "gift"))
+    else:
         ui.info(
-            f"« Revenez quand vous voudrez, capitaine. Je serai prête. »"
+            f"Il faudrait {cost} pièces de huit pour un présent qu'elle "
+            f"accepterait — votre bourse est trop maigre ce soir."
         )
+    options.append(("Prendre congé sans rien lui offrir", "leave"))
+
+    choice = ui.choose("Que faites-vous ?", options)
+
+    if choice == "gift":
+        state.gold -= cost
+        state.increase_affection(pid)
+        new_aff = state.affection_for(pid)
+        # On réaffiche le portrait pour qu'il reste visible
+        # pendant la réaction de l'hôtesse.
+        ui.show_scene("companions", waitress["id"])
+        ui.success(
+            f"Vous lui glissez {gift_flavor}. "
+            f"{waitress['name']} l'accepte d'un signe de tête bref. "
+            f"(Affection {new_aff}/{threshold})"
+        )
+        if new_aff >= threshold:
+            ui.narrate(
+                "Son regard, lorsqu'il croise le vôtre une dernière fois "
+                "avant que vous quittiez la salle, dit assez : la prochaine "
+                "fois sera la bonne."
+            )
+
+    elif choice == "recruit":
+        # Délègue au moment de proposition (qui ajoute le compagnon
+        # et clôt définitivement la chaîne d'événements pour ce port).
+        _tavern_propose(state, ui, port, waitress)
+
+    # « leave » : rien ne se passe, le joueur ressort de la rencontre.
 
 
 def _tavern_propose(state, ui, port, waitress):
+    """Recrutement effectif de l'hôtesse. Fin de la chaîne d'événements."""
     ui.show_scene("companions", waitress["id"])
     ui.narrate(waitress["recruitment"]["accept"])
     state.add_companion(waitress)
@@ -415,13 +511,41 @@ def _action_distribute_booty(state, ui):
 
 
 def _action_inspect(state, ui):
+    """Inspecte la situation de bord et permet de consulter le portrait
+    de chaque compagnon recruté. Action gratuite (n'avance pas le tour)."""
     state.render_status(ui)
-    if state.companions:
-        ui.divider()
-        ui.info("Détail des compagnons :")
-        for c in state.companions:
-            ui.info(f"  • {c['name']} — {c['role']}")
-            ui.info(f"    {c['bonus_label']}")
+    if not state.companions:
+        return
+
+    ui.divider()
+    ui.info("Détail des compagnons :")
+    for c in state.companions:
+        nick = f" « {c['nickname']} »" if c.get("nickname") else ""
+        ui.info(f"  • {c['name']}{nick} — {c['role']}")
+        ui.info(f"    {c['bonus_label']}")
+
+    # Boucle d'exploration des portraits.
+    from core.ui import _wrap
+    while True:
+        options = [(f"Voir {c['name']}", c["id"]) for c in state.companions]
+        options.append(("Retour", None))
+        choice = ui.choose("Consulter le portrait d'un compagnon ?", options)
+        if choice is None:
+            return
+
+        comp = next(c for c in state.companions if c["id"] == choice)
+        ui.show_scene("companions", comp["id"])
+        nick = f" « {comp['nickname']} »" if comp.get("nickname") else ""
+        ui.title(f"{comp['name']}{nick}")
+        ui.info(f"Rôle    : {comp['role']}")
+        if comp.get("period"):
+            ui.info(f"Période : {comp['period']}")
+        ui.info(f"Bonus   : {comp['bonus_label']}")
+        bio = comp.get("biography", "")
+        if bio:
+            ui.info("")
+            for line in _wrap(bio, 70):
+                ui.info(line)
 
 
 def _action_rest(state, ui):

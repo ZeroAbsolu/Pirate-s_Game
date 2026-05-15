@@ -186,9 +186,22 @@ class TextUI:
         _safe_print()
 
     # ----- Images (en texte, on signale juste leur présence) -----
+    # En mode texte, un terminal ne peut pas afficher d'image : on se
+    # contente de confirmer que l'illustration a bien été trouvée. Pour
+    # la voir réellement, lancer le jeu avec : python main.py --gui
+    _image_hint_shown = False   # astuce affichée une seule fois par session
+
     def show_image(self, path):
         if path and os.path.isfile(path):
-            _safe_print(f"{C_DIM}  [image : {os.path.basename(path)}]{C_RESET}")
+            if not TextUI._image_hint_shown:
+                _safe_print(
+                    f"{C_DIM}  (Astuce : les illustrations s'affichent dans la "
+                    f"fenêtre graphique. Lancez « python main.py --gui »){C_RESET}"
+                )
+                TextUI._image_hint_shown = True
+            _safe_print(
+                f"{C_DIM}  [illustration trouvée : {os.path.basename(path)}]{C_RESET}"
+            )
 
     def show_scene(self, category, instance_id, variant=None):
         """

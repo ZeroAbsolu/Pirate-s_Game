@@ -11,6 +11,9 @@ Caractéristiques :
   - Les chemins suivent la convention définie dans core/images.py.
   - Si une image est manquante, le panneau affiche une plaque grise avec
     le nom de la scène — le jeu continue normalement.
+  - La zone d'action est défilable : si la liste d'options dépasse la
+    hauteur visible (cas de Tortuga avec ses bâtiments spécifiques),
+    une scrollbar apparaît automatiquement et la molette fonctionne.
 
 Lancement :
     from core.ui_gui import GraphicalUI
@@ -53,6 +56,7 @@ class GraphicalUI(TextUI):
     """Interface graphique Tkinter. API compatible TextUI."""
 
     SCENE_W, SCENE_H = 520, 360       # taille d'affichage du fond de scène
+    ACTION_FRAME_H   = 210            # hauteur du panneau d'action (avec scroll si besoin)
 
     def __init__(self):
         self.root = tk.Tk()
@@ -108,6 +112,10 @@ class GraphicalUI(TextUI):
         style.configure("Pirate.TEntry",
                         fieldbackground=PANEL_LT, foreground=INK,
                         insertcolor=GOLD)
+        # Scrollbar discret assorti au panneau
+        style.configure("Pirate.Vertical.TScrollbar",
+                        background=PANEL_LT, troughcolor=PANEL,
+                        bordercolor=BORDER, arrowcolor=INK_DIM)
 
     def _build_layout(self):
         root = self.root
@@ -152,8 +160,9 @@ class GraphicalUI(TextUI):
                              justify="center",
                              spacing1=20, spacing3=20)
 
-        # Zone d'action (boutons / saisie) — hauteur fixe
-        self.action_frame = tk.Frame(left, bg=PANEL, height=170,
+        # ---- Zone d'action (boutons / saisie), défilable ----
+        # Cadre extérieur, hauteur fixe pour ne pas dévorer le journal.
+        self.action_frame = tk.Frame(left, bg=PANEL, height=self.ACTION_FRAME_H,
                                      highlightbackground=BORDER, highlightthickness=1)
         self.action_frame.pack(fill="x", pady=(6, 0))
         self.action_frame.pack_propagate(False)
@@ -161,12 +170,40 @@ class GraphicalUI(TextUI):
         self.action_prompt = tk.Label(
             self.action_frame, text="", bg=PANEL, fg=GOLD,
             font=("Georgia", 11, "italic"), anchor="w", justify="left",
-            wraplength=600,
+            wraplength=560,
         )
         self.action_prompt.pack(fill="x", padx=10, pady=(8, 4))
 
-        self.action_widgets = tk.Frame(self.action_frame, bg=PANEL)
-        self.action_widgets.pack(fill="both", expand=True, padx=10, pady=(0, 8))
+        # Conteneur défilable : Canvas + Scrollbar + Frame interne.
+        self._action_outer = tk.Frame(self.action_frame, bg=PANEL)
+        self._action_outer.pack(fill="both", expand=True, padx=10, pady=(0, 8))
+
+        self._action_canvas = tk.Canvas(
+            self._action_outer, bg=PANEL,
+            highlightthickness=0, borderwidth=0,
+        )
+        self._action_scrollbar = ttk.Scrollbar(
+            self._action_outer, orient="vertical",
+            style="Pirate.Vertical.TScrollbar",
+            command=self._action_canvas.yview,
+        )
+        self._action_canvas.configure(yscrollcommand=self._action_scrollbar.set)
+
+        # action_widgets : c'est CE conteneur que `choose`/`ask_*` peuplent.
+        # On le crée dans le Canvas pour qu'il défile.
+        self.action_widgets = tk.Frame(self._action_canvas, bg=PANEL)
+        self._action_canvas_window = self._action_canvas.create_window(
+            (0, 0), window=self.action_widgets, anchor="nw",
+        )
+
+        self._action_canvas.pack(side="left", fill="both", expand=True)
+        # La scrollbar est packée dynamiquement seulement si utile.
+
+        self.action_widgets.bind("<Configure>", self._on_action_widgets_configure)
+        self._action_canvas.bind("<Configure>", self._on_action_canvas_configure)
+        # Molette : activée seulement quand le curseur survole la zone.
+        self._action_canvas.bind("<Enter>", lambda e: self._bind_mousewheel())
+        self._action_canvas.bind("<Leave>", lambda e: self._unbind_mousewheel())
 
         # --- Colonne droite : scène + statut ---
         right = tk.Frame(main, bg=BG, width=560)
@@ -225,6 +262,78 @@ class GraphicalUI(TextUI):
         self.companions_label.pack(anchor="w", padx=10, pady=(0, 8), fill="x")
 
     # ===============================================================
+    # Gestion du défilement de la zone d'action
+    # ===============================================================
+
+    def _on_action_widgets_configure(self, event=None):
+        """Quand le contenu interne change : met à jour la zone de scroll
+        et affiche/masque la scrollbar selon le besoin."""
+        if self._closed:
+            return
+        try:
+            bbox = self._action_canvas.bbox("all")
+        except tk.TclError:
+            return
+        if bbox is None:
+            return
+        self._action_canvas.configure(scrollregion=bbox)
+        # bbox = (x1, y1, x2, y2) — y2 est la hauteur totale du contenu
+        needs_scroll = bbox[3] > self._action_canvas.winfo_height()
+        if needs_scroll:
+            if not self._action_scrollbar.winfo_ismapped():
+                self._action_scrollbar.pack(side="right", fill="y")
+        else:
+            if self._action_scrollbar.winfo_ismapped():
+                self._action_scrollbar.pack_forget()
+
+    def _on_action_canvas_configure(self, event):
+        """Le canvas a été redimensionné : aligner la largeur du frame interne."""
+        if self._closed:
+            return
+        try:
+            self._action_canvas.itemconfig(
+                self._action_canvas_window, width=event.width,
+            )
+        except tk.TclError:
+            pass
+        # Réévaluer la scrollbar (la hauteur visible a pu changer)
+        self._on_action_widgets_configure()
+
+    def _bind_mousewheel(self):
+        if self._closed:
+            return
+        # Windows/macOS
+        self._action_canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        # Linux X11
+        self._action_canvas.bind_all("<Button-4>", self._on_mousewheel)
+        self._action_canvas.bind_all("<Button-5>", self._on_mousewheel)
+
+    def _unbind_mousewheel(self):
+        if self._closed:
+            return
+        try:
+            self._action_canvas.unbind_all("<MouseWheel>")
+            self._action_canvas.unbind_all("<Button-4>")
+            self._action_canvas.unbind_all("<Button-5>")
+        except tk.TclError:
+            pass
+
+    def _on_mousewheel(self, event):
+        if self._closed:
+            return
+        if not self._action_scrollbar.winfo_ismapped():
+            return   # rien à défiler
+        if getattr(event, "num", 0) == 4:
+            delta = -1
+        elif getattr(event, "num", 0) == 5:
+            delta = 1
+        elif getattr(event, "delta", 0):
+            delta = int(-1 * (event.delta / 120))
+        else:
+            return
+        self._action_canvas.yview_scroll(delta, "units")
+
+    # ===============================================================
     # Cycle UI
     # ===============================================================
 
@@ -256,6 +365,11 @@ class GraphicalUI(TextUI):
     def _clear_action_widgets(self):
         for w in self.action_widgets.winfo_children():
             w.destroy()
+        # Remonter le scroll en haut
+        try:
+            self._action_canvas.yview_moveto(0)
+        except tk.TclError:
+            pass
 
     def _set_prompt(self, text):
         self.action_prompt.config(text=text or "")
@@ -454,6 +568,10 @@ class GraphicalUI(TextUI):
             self.action_widgets.grid_columnconfigure(0, weight=1)
             self.action_widgets.grid_columnconfigure(1, weight=1)
 
+        # Force la mise à jour de la zone défilable
+        self._safe_update()
+        self._on_action_widgets_configure()
+
         self._wait_for_input()
         self._clear_action_widgets()
         self._set_prompt("")
@@ -479,6 +597,9 @@ class GraphicalUI(TextUI):
         btn = ttk.Button(self.action_widgets, text="Valider", style="Pirate.TButton",
                          command=submit)
         btn.pack(fill="x", padx=2)
+
+        self._safe_update()
+        self._on_action_widgets_configure()
 
         self._wait_for_input()
         self._clear_action_widgets()
@@ -506,6 +627,9 @@ class GraphicalUI(TextUI):
             entry.bind("<Return>", lambda e: submit())
             ttk.Button(self.action_widgets, text="Valider", style="Pirate.TButton",
                        command=submit).pack(fill="x", padx=2)
+
+            self._safe_update()
+            self._on_action_widgets_configure()
 
             self._wait_for_input()
             self._clear_action_widgets()
