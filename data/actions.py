@@ -106,6 +106,45 @@ def _action_visit_port(state, ui):
     if port_id is None:
         return
     port = get_port(port_id)
+
+    # --- Détection d'une grande traversée Caraïbes ↔ océan Indien ---
+    from data.voyages import region_of_port, trigger_long_voyage
+    last_region = state.flags.get("last_region", "caribbean")
+    dest_region = region_of_port(port_id)
+
+    if dest_region and dest_region != last_region:
+        # Grande traversée : Caraïbes ↔ Sainte-Marie, dans les deux sens.
+        min_supplies = 40
+        if state.supplies < min_supplies or state.crew < state.ship["crew_min"]:
+            ui.fail(
+                f"Vivres ({state.supplies}/100) ou équipage ({state.crew} hommes, "
+                f"minimum {state.ship['crew_min']}) insuffisants pour une telle "
+                "traversée. Refaites-vous d'abord à terre."
+            )
+            return
+
+        trigger_long_voyage(state, ui, port_id, origin_region=last_region)
+        if state.game_over:
+            return
+
+        # Arrivée à destination
+        state.in_port = True
+        state.current_port = port
+        ui.show_scene("ports", port_id, "main")
+        ui.success(f"Après plusieurs mois de mer, vous mouillez à {port['name']}.")
+
+        maybe_trigger_port_event(state, ui, port_id)
+        if state.game_over:
+            return
+
+        _port_menu(state, ui, port)
+
+        state.flags["last_region"] = dest_region
+        state.in_port = False
+        state.current_port = None
+        return
+
+    # --- Trajet court (intra-Caraïbes) : comportement original ---
     ui.info(f"Cap sur {port['name']}…")
     state.advance_turn()
     _consume_supplies(state, max(1, state.crew // 20))
@@ -130,6 +169,7 @@ def _action_visit_port(state, ui):
 
     _port_menu(state, ui, port)
 
+    state.flags["last_region"] = dest_region or last_region
     state.in_port = False
     state.current_port = None
 

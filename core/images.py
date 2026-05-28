@@ -169,6 +169,7 @@ def list_expected_images():
     from data.port_events import PORT_EVENTS
     from data.companions import COMPANIONS
     from data.buildings import BUILDINGS
+    from data.voyages import iter_voyage_event_ids
 
     out = {
         "captains": [captain_image_path(cid) for cid in CAPTAINS],
@@ -176,7 +177,8 @@ def list_expected_images():
         "ports":    [],
         "port_events": [],
         "buildings": [],
-        "events":   [event_image_path(e["id"]) for e in EVENTS],
+        "events":   ([event_image_path(e["id"]) for e in EVENTS] +
+                     [event_image_path(eid) for eid in iter_voyage_event_ids()]),
         "actions":  [action_image_path(a["id"]) for a in ACTIONS],
         "companions": [companion_image_path(cid) for cid in COMPANIONS],
         "ui":       [
