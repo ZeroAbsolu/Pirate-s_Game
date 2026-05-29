@@ -777,6 +777,22 @@ def _resolve_careened_ship(state, ui):
             ui.success(f"Prise rapide. +{booty} P8, +{cargo} cargaison, et {n} prisonnier(s) sur la plage.")
         else:
             ui.success(f"Prise nette. +{booty} P8 et +{cargo} de cargaison.")
+        # Matières premières échouées : à rapporter au repaire si on en a un.
+        hold = getattr(state, "cargo_hold", None)
+        if hold is not None:
+            import random as _r
+            from data.resources import RESOURCES as _RES
+            # 1 à 3 types différents, petites quantités
+            for rid in _r.sample(list(_RES.keys()), k=_r.randint(1, 3)):
+                qty = _r.randint(2, 6)
+                room = max(0, state.ship.get("cargo", 0) * 15 - sum(hold.values()))
+                added = min(qty, room)
+                if added > 0:
+                    hold[rid] = hold.get(rid, 0) + added
+                    ui.info(f"  +{added} {_RES[rid]['label']} (cale).")
+                if room <= 0:
+                    ui.info("  La cale déborde : le reste est laissé à la mer.")
+                    break
     else:
         ui.info("Vous gardez le large. Discret, mais sans gain.")
 
@@ -1654,6 +1670,22 @@ def _resolve_wreck(state, ui):
         ui.success(f"Vivres, poudre et un coffre. {booty} pièces de huit récupérées.")
         state.gold += booty
         state.supplies = min(100, state.supplies + 10)
+        # Matières premières échouées : à rapporter au repaire si on en a un.
+        hold = getattr(state, "cargo_hold", None)
+        if hold is not None:
+            import random as _r
+            from data.resources import RESOURCES as _RES
+            # 1 à 3 types différents, petites quantités
+            for rid in _r.sample(list(_RES.keys()), k=_r.randint(1, 3)):
+                qty = _r.randint(2, 6)
+                room = max(0, state.ship.get("cargo", 0) * 15 - sum(hold.values()))
+                added = min(qty, room)
+                if added > 0:
+                    hold[rid] = hold.get(rid, 0) + added
+                    ui.info(f"  +{added} {_RES[rid]['label']} (cale).")
+                if room <= 0:
+                    ui.info("  La cale déborde : le reste est laissé à la mer.")
+                    break
     elif roll < 0.85:
         ui.info("L'épave est nettoyée. Rien à prendre.")
     else:

@@ -624,3 +624,8 @@ ACTIONS = [
 
 def list_actions(state):
     return [a for a in ACTIONS if a["available"](state)]
+
+# Branchement du module "repaire" (purement additif).
+# Import diff\u00e9r\u00e9 ici pour \u00e9viter tout cycle avec base_actions <-> actions.
+from data.base_actions import BASE_ACTIONS as _BASE_ACTIONS
+ACTIONS.extend(_BASE_ACTIONS)
