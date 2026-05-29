@@ -105,6 +105,10 @@ def _bilan(state, ui):
     nick = f" « {state.captain['nickname']} »" if state.captain.get("nickname") else ""
     ui.info(f"  Capitaine     : {state.captain['name']}{nick}")
     ui.info(f"  Navire        : {state.ship['name']}")
+    if state.base is not None:
+        ui.divider()
+    for line in state.base.summary_lines():
+        ui.info(line)
     ui.info(f"  Tours tenus   : {state.turn}  (~{state.turn // 2} mois en mer)")
     ui.info(f"  Or final      : {state.gold} pièces de huit")
     ui.info(f"  Réputation    : {state.reputation}")

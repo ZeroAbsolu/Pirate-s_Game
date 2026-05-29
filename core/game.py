@@ -46,6 +46,10 @@ class GameState:
         # encaisser au tour `due_turn`. Format :
         #   {"prisoner": <dict>, "due_turn": int, "amount": int}
         self.pending_ransoms = []
+        
+        # Repaire
+        self.base = None          # cf. core/base.Hideout — None tant que non fondé
+        self.cargo_hold = {}      # mati\u00e8res ramen\u00e9es de la mer, à débarquer au repaire
 
         # Temporalité
         self.turn = 0
@@ -86,6 +90,9 @@ class GameState:
             self.morale = max(self.morale, bonuses["morale_floor"])
         # Rançons échues
         self._settle_due_ransoms()
+        # Cycle de vie de la base
+        if self.base is not None:
+            self.base.tick(self)
 
     def _settle_due_ransoms(self):
         """Encaisse toutes les rançons dont le tour est venu."""
@@ -131,6 +138,22 @@ class GameState:
 
     def increase_affection(self, port_id: str, amount: int = 1):
         self.affection[port_id] = self.affection_for(port_id) + amount
+
+    # ----- Capacité du cargo -----
+    def hold_capacity(self) -> int:
+        return self.ship.get("cargo", 0) * 15
+
+    def hold_total(self) -> int:
+        return sum(self.cargo_hold.values())
+
+    def add_to_hold(self, rid: str, qty: int) -> int:
+        """Ajoute jusqu'\u00e0 `qty` unit\u00e9s à la cale, born\u00e9 par la capacit\u00e9.
+        Renvoie ce qui est r\u00e9ellement entr\u00e9."""
+        room = max(0, self.hold_capacity() - self.hold_total())
+        added = max(0, min(qty, room))
+        if added:
+            self.cargo_hold[rid] = self.cargo_hold.get(rid, 0) + added
+        return added
 
     # ----- Défaite -----
     def _trigger_defeat(self, ui, reason: str, narrative: str):
